@@ -1,6 +1,7 @@
 {
   "name": "rust-linkdrop-app",
   "version": "0.1.0",
+  "license": "(MIT AND Apache-2.0)",
   "scripts": {
     "build": "npm run build:contract && npm run build:web",
     "build:contract": "node ./contract/build",
@@ -23,7 +24,7 @@
     "gulp": "^4.0.2",
     "jest": "^26.0.0",
     "jest-environment-node": "^26.0.1",
-    "near-shell": "^0.22.0",
+    "near-shell": "^0.24.1",
     "nodemon": "^2.0.3",
     "parcel-bundler": "^1.12.4",
     "react-test-renderer": "^16.13.1",
