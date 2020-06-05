@@ -136,7 +136,7 @@ const Drops = (props) => {
     ********************************/
     async function fundLimitedDrop() {
         // get a drop amount from the user
-        const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ') || 0)
+        const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ\nRecommended 30 Ⓝ\nWARNING you will ONLY be able to create a multisig contract with this drop. You will NOT be able to reclaim these funds!') || 0)
         if (nearTo(amount) < 0.01) {
             window.alert('Amount too small for drop')
             return
@@ -340,7 +340,7 @@ const Drops = (props) => {
                 <p>{account_id}</p>
                 <p>Balance: <span className="funds">{nearTo(currentUser.balance, 2)} Ⓝ</span></p>
             </div>
-            <button onClick={() => fundDrop()}>Create Drop</button>
+            <button onClick={() => fundDrop()}>Create Generic Drop</button><br/>
             <button onClick={() => fundLimitedDrop()}>Create Multisig Drop</button>
             {
                 urlDrop && <div className="drop">
@@ -358,27 +358,29 @@ const Drops = (props) => {
                     }
                 </div>
             }
-            <h2>My Drops</h2>
-            <div>
-                {
-                    drops.map(({ public_key, amount }) => <div className="drop" key={public_key}>
-                        <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
-                        <p>For public key<br/>{public_key}</p>
-                        
-                        <button onClick={async () => {
-                            copyToClipboard(await getExampleLink(public_key))
-                            alert('Drop link to this example copied to clipboard')
-                        }}>Create Example Link</button>
-                        <br/>
-                        <button onClick={async () => {
-                            copyToClipboard(await getWalletLink(public_key))
-                            alert('Create Near Wallet link copied to clipboard')
-                        }}>Create Near Wallet Link</button>
-                        <br/>
-                        <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>
-                    </div>)
-                }
-            </div>
+            { drops.length > 0 && 
+                <div className="drop" >
+                    <h2>My Drops</h2>
+                    {
+                        drops.map(({ public_key, amount }) => <div className="drop" key={public_key}>
+                            <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
+                            <p>For public key<br/>{public_key}</p>
+                            
+                            <button onClick={async () => {
+                                copyToClipboard(await getExampleLink(public_key))
+                                alert('Drop link to this example copied to clipboard')
+                            }}>Create Example Link</button>
+                            <br/>
+                            <button onClick={async () => {
+                                copyToClipboard(await getWalletLink(public_key))
+                                alert('Create Near Wallet link copied to clipboard')
+                            }}>Create Near Wallet Link</button>
+                            <br/>
+                            <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>
+                        </div>)
+                    }
+                </div>
+            }
         </div>
     )
 }
