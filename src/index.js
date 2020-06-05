@@ -35,7 +35,7 @@ async function initContract() {
       const account = window.account = window.walletConnection.account()
       window.contract = await new nearApi.Contract(account, window.nearConfig.contractName, {
           // Change methods can modify the state. But you don't receive the returned value when called.
-          changeMethods: ['send'],
+          changeMethods: ['send', 'send_limited'],
           // Sender is the account ID to initialize transactions.
           sender: window.currentUser.accountId
       });
