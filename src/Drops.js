@@ -80,7 +80,8 @@ const Drops = (props) => {
     ********************************/
     async function getWalletLink(public_key) {
         const { amount, secretKey: key } = await getDrop(public_key)
-        return `https://wallet.testnet.near.org/create/${contractName}/${key}`
+        // return `https://wallet.testnet.near.org/create/${contractName}/${key}`
+        return `/create/${contractName}/${key}`
     }
     async function getExampleLink(public_key) {
         const { amount, secretKey: key, limited } = await getDrop(public_key)
@@ -136,7 +137,7 @@ const Drops = (props) => {
     ********************************/
     async function fundLimitedDrop() {
         // get a drop amount from the user
-        const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ\nRecommended 30 Ⓝ\nWARNING you will ONLY be able to create a multisig contract with this drop. You will NOT be able to reclaim these funds!') || 0)
+        const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ\nRecommended 40 Ⓝ\nWARNING you will ONLY be able to create a multisig contract with this drop. You will NOT be able to reclaim these funds!') || 0)
         if (nearTo(amount) < 0.01) {
             window.alert('Amount too small for drop')
             return
@@ -373,7 +374,7 @@ const Drops = (props) => {
                             <br/>
                             <button onClick={async () => {
                                 copyToClipboard(await getWalletLink(public_key))
-                                alert('Create Near Wallet link copied to clipboard')
+                                alert('Create Near Wallet link copied to clipboard.\n\nPlease add your own origin e.g. http://localhost:1234')
                             }}>Create Near Wallet Link</button>
                             <br/>
                             <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>

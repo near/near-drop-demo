@@ -158,7 +158,8 @@ impl LinkDrop {
     pub fn create_multisig_and_claim(
         &mut self,
         new_account_id: AccountId,
-        new_public_key: Base58PublicKey,
+        new_access_keys: Vec<Base58PublicKey>,
+        new_confirm_keys: Vec<Base58PublicKey>,
         num_confirmations: u32,
     ) -> Promise {
         assert_eq!(
@@ -171,14 +172,12 @@ impl LinkDrop {
             "Invalid account id"
         );
         let multisig_bytes = include_bytes!("../res/multisig.wasm").to_vec();
-        let method_names = b"new,add_request,delete_request,execute_request,confirm,get_request,list_request_ids,get_confirmations".to_vec();
         let amount = self
             .accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
-        // create the account, contract and return the promise
-        Promise::new(new_account_id.clone())
-            .create_account()
+        // create the account, multisig contract, call new
+        let mut promise = Promise::new(new_account_id.clone()).create_account()
             .transfer(amount)
             .deploy_contract(multisig_bytes)
             .function_call(
@@ -186,20 +185,33 @@ impl LinkDrop {
                 serde_json::to_vec(&MultisigArgs { num_confirmations }).unwrap(),
                 NO_DEPOSIT,
                 ON_CREATE_ACCOUNT_CALLBACK_GAS,
-            )
-            .add_access_key(
-                new_public_key.into(),
-                MAX_ALLOWANCE.into(), // way to not specify default to max
-                new_account_id,
-                method_names
-            )
-            .then(
-                ext_self::on_account_created_and_claimed(
-                amount.into(),
-                &env::current_account_id(),
-                NO_DEPOSIT,
-                ON_CREATE_ACCOUNT_CALLBACK_GAS,
-            ))
+            );
+        // add the access keys
+        for key in new_access_keys {
+            promise = promise.add_access_key(
+                key.into(),
+                MAX_ALLOWANCE.into(),
+                new_account_id.clone(),
+                b"add_request,delete_request,confirm".to_vec()
+            );
+        }
+        // add the confirmation keys
+        for key in new_confirm_keys {
+            promise = promise.add_access_key(
+                key.into(),
+                MAX_ALLOWANCE.into(),
+                new_account_id.clone(),
+                b"confirm".to_vec()
+            );
+        }
+        // return the promise
+        promise.then(
+            ext_self::on_account_created_and_claimed(
+            amount.into(),
+            &env::current_account_id(),
+            NO_DEPOSIT,
+            ON_CREATE_ACCOUNT_CALLBACK_GAS,
+        ))
     }
 
     /// Create and fund new account with limited access key to contract methods.
@@ -418,8 +430,11 @@ mod tests {
         let pk2 = "2S87aQ1PM9o6eBcEXnTR5yBAVRTiNmvj8J8ngZ6FzSca"
             .try_into()
             .unwrap();
+        let pk3 = "2S87aQ1PM9o6eBcEXnTR5yBAVRTiNmvj8J8ngZ6FzSca"
+            .try_into()
+            .unwrap();
         // create multisig with 2 confirmations
-        contract.create_multisig_and_claim(bob(), pk2, 2);
+        contract.create_multisig_and_claim(bob(), vec![pk2], vec![pk3], 2);
     }
 
     #[test]
