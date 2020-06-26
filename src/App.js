@@ -40,7 +40,7 @@ class App extends Component {
   }
 
   async requestSignIn() {
-    const appTitle = 'NEAR Linkdrop Example';
+    const appTitle = 'NEAR Drop Example';
     await this.props.wallet.requestSignIn(
       window.nearConfig.contractName,
       appTitle
