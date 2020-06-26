@@ -1,4 +1,4 @@
-const CONTRACT_NAME = 'dev2' || process.env.CONTRACT_NAME ||'rust-linkdrop-app';
+const CONTRACT_NAME = 'testnet';
 
 function getConfig(env) {
     switch (env) {
