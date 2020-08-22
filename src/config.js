@@ -1,4 +1,4 @@
-const CONTRACT_NAME = 'testnet';
+const CONTRACT_NAME = 'linkdrop';
 
 function getConfig(env) {
     switch (env) {
@@ -8,7 +8,7 @@ function getConfig(env) {
         return {
             networkId: 'default',
             nodeUrl: 'https://rpc.mainnet.near.org',
-            contractName: CONTRACT_NAME,
+            contractName: 'near',
             walletUrl: 'https://wallet.near.org',
             helperUrl: 'https://helper.mainnet.near.org',
         };
@@ -17,7 +17,7 @@ function getConfig(env) {
         return {
             networkId: 'default',
             nodeUrl: 'https://rpc.testnet.near.org',
-            contractName: CONTRACT_NAME,
+            contractName: 'testnet',
             walletUrl: 'https://wallet.testnet.near.org',
             helperUrl: 'https://helper.testnet.near.org',
         };
