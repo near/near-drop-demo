@@ -104,6 +104,8 @@ const Drops = (props) => {
     async function fundDrop() {
         // get a drop amount from the user
         const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ') || 0)
+        // TODO: What is minimum allowance? Seems to not match what is in contract source?
+        // TODO: Do not use floats
         if (nearTo(amount) < 0.01) {
             window.alert('Amount too small for drop')
             return
@@ -116,9 +118,9 @@ const Drops = (props) => {
         await addDrop(newKeyPair)
         // register the drop public key and send the amount to contract
         const { contract } = window
-        const res = await contract.send({ public_key }, BOATLOAD_OF_GAS, amount)
-            .catch((e) => { console.log(e) })
+        await contract.send({ public_key }, BOATLOAD_OF_GAS, amount)
         // going to redirect because we're sending funds
+        // TODO: Handle error?
     }
 
     /********************************
