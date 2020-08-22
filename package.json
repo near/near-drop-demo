@@ -3,16 +3,10 @@
   "version": "0.1.0",
   "license": "(MIT AND Apache-2.0)",
   "scripts": {
-    "build": "npm run build:contract && npm run build:web",
-    "build:contract": "node ./contract/build",
+    "build": "npm run build:web",
     "build:web": "parcel build src/index.html --public-url ./",
-    "dev:deploy:contract": "near dev-deploy --wasmFile ./contract/res/linkdrop.wasm",
-    "deploy:contract": "near deploy --wasmFile ./contract/res/linkdrop.wasm",
-    "deploy:pages": "gh-pages -d dist/",
-    "deploy": "npm run build && npm run deploy:contract && npm run deploy:pages",
     "start": "parcel src/index.html",
-    "dev": "nodemon --watch assembly -e ts --exec \"npm run start\"",
-    "test": "cd contract && cargo test --package status-message -- --nocapture"
+    "dev": "nodemon --watch assembly -e ts --exec \"npm run start\""
   },
   "devDependencies": {
     "@babel/preset-env": "^7.9.5",
