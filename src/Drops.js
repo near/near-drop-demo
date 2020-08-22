@@ -2,6 +2,7 @@ import 'regenerator-runtime/runtime';
 import React, { useState, useEffect } from 'react';
 import * as nearApi from 'near-api-js'
 import { get, set, del } from 'idb-keyval'
+import * as clipboard from "clipboard-polyfill/text";
 import {
     nearTo, toNear, BOATLOAD_OF_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
 } from './util/near-util'
@@ -36,21 +37,6 @@ const Drops = (props) => {
     }, [])
 
     /********************************
-    Handle copy link to clipboard
-    ********************************/
-    function copyToClipboard(url) {
-        const el = document.createElement('textarea')
-        el.value = url
-        el.setAttribute('readonly', '')
-        el.style.position = 'absolute'
-        el.style.left = '-1000px'
-        document.body.appendChild(el)
-        el.select()
-        document.execCommand('copy')
-        el.blur()
-        document.body.removeChild(el)
-    }
-    /********************************
     Update drops (idb + state), add drop, remove drop
     ********************************/
     async function getDrop(public_key) {
@@ -59,6 +45,9 @@ const Drops = (props) => {
     }
     async function updateDrops() {
         const drops = (await get(dropStorageKey) || [])
+        for (let drop of drops) {
+            drop.walletLink = await getWalletLink(drop.public_key)
+        }
         setDrops(drops)
     }
     async function removeDrop(public_key) {
@@ -361,11 +350,11 @@ const Drops = (props) => {
                 <div className="drop" >
                     <h2>Active Drops</h2>
                     {
-                        drops.map(({ public_key, amount }) => <div className="drop" key={public_key}>
+                        drops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
                             <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
                             <p>For public key: {public_key.substring(0, 5)+'...'}</p>
                             <button onClick={async () => {
-                                copyToClipboard(await getWalletLink(public_key))
+                                await clipboard.writeText(walletLink)
                                 alert('Create Near Wallet link copied to clipboard')
                             }}>Copy Near Wallet Link</button>
                             <br/>

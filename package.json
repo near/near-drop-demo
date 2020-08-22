@@ -27,16 +27,17 @@
     "nodemon": "^2.0.3",
     "parcel-bundler": "^1.12.4",
     "react-test-renderer": "^16.13.1",
-    "sass": "^1.26.7",
+    "sass": "^1.26.10",
     "shelljs": "^0.8.4"
   },
   "dependencies": {
     "big.js": "^5.2.2",
+    "clipboard-polyfill": "^3.0.1",
     "idb-keyval": "^3.2.0",
-    "near-api-js": "^0.24.0",
+    "near-api-js": "^0.29.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "regenerator-runtime": "^0.13.5"
+    "regenerator-runtime": "^0.13.7"
   },
   "eslintConfig": {
     "extends": "react-app"
