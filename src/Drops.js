@@ -106,7 +106,7 @@ const Drops = (props) => {
         const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ') || 0)
         // TODO: What is minimum allowance? Seems to not match what is in contract source?
         // TODO: Do not use floats
-        if (nearTo(amount) < 0.01) {
+        if (nearTo(amount) < 1.0) {
             window.alert('Amount too small for drop')
             return
         }
