@@ -12,7 +12,8 @@ import './Drops.scss';
 const Drops = (props) => {
 
     const {
-        contractName
+        contractName,
+        walletUrl
     } = window.nearConfig
 
     const {
@@ -68,8 +69,8 @@ const Drops = (props) => {
     Drop links
     ********************************/
     async function getWalletLink(public_key) {
-        const { amount, secretKey: key } = await getDrop(public_key)
-        return `https://wallet.testnet.near.org/create/${contractName}/${key}`
+        const { secretKey } = await getDrop(public_key)
+        return `${walletUrl}/create/${contractName}/${secretKey}`
     }
     async function getExampleLink(public_key) {
         const { amount, secretKey: key, limited } = await getDrop(public_key)
