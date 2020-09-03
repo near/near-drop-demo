@@ -25,7 +25,7 @@ const Drops = (props) => {
     const [urlDrop, setUrlDrop] = useState()
 
     useEffect(() => {
-        updateDrops()
+        updateDrops(true)
         const url = new URL(window.location.href)
         const key = url.searchParams.get('key')
         const amount = url.searchParams.get('amount')
@@ -44,11 +44,14 @@ const Drops = (props) => {
         const drops = await get(dropStorageKey) || []
         return drops.find((d) => d.public_key === public_key)
     }
-    async function updateDrops() {
+    async function updateDrops(check = false) {
         const drops = (await get(dropStorageKey) || [])
         for (let drop of drops) {
             const { public_key: key } = drop
             drop.walletLink = await getWalletLink(key)
+            if (!check) {
+                continue
+            }
             // check drop is valid
             const { contract } = window
             let res
