@@ -4,10 +4,9 @@ import * as nearApi from 'near-api-js'
 import { get, set, del } from 'idb-keyval'
 import * as clipboard from "clipboard-polyfill/text";
 import {
-    nearTo, toNear, BOATLOAD_OF_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
+    nearTo, nearToInt, toNear, BOATLOAD_OF_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
 } from './util/near-util'
 import './Drops.scss';
-
 
 const Drops = (props) => {
 
@@ -35,6 +34,7 @@ const Drops = (props) => {
         if (key && amount && from) {
             setUrlDrop({ key, amount, from, limited })
         }
+        window.clearDrops = () => del(dropStorageKey)
     }, [])
 
     /********************************
@@ -47,7 +47,19 @@ const Drops = (props) => {
     async function updateDrops() {
         const drops = (await get(dropStorageKey) || [])
         for (let drop of drops) {
-            drop.walletLink = await getWalletLink(drop.public_key)
+            const { public_key: key } = drop
+            drop.walletLink = await getWalletLink(key)
+            // check drop is valid
+            const { contract } = window
+            let res
+            try {
+                res = await contract.get_key_balance({ key })
+            } catch (e) {
+                console.warn(e)
+            }
+            if (!res || nearToInt(res) < 1) {
+                await removeDrop(key)
+            }
         }
         setDrops(drops)
     }
@@ -71,10 +83,6 @@ const Drops = (props) => {
     async function getWalletLink(public_key) {
         const { secretKey } = await getDrop(public_key)
         return `${walletUrl}/create/${contractName}/${secretKey}`
-    }
-    async function getExampleLink(public_key) {
-        const { amount, secretKey: key, limited } = await getDrop(public_key)
-        return `${window.location.origin}?amount=${amount}&key=${key}&from=${account_id}&limited=${!!limited}`
     }
     /********************************
     Get Contract Helper
@@ -105,8 +113,7 @@ const Drops = (props) => {
         // get a drop amount from the user
         const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ') || 0)
         // TODO: What is minimum allowance? Seems to not match what is in contract source?
-        // TODO: Do not use floats
-        if (nearTo(amount) < 1.0) {
+        if (nearToInt(amount) < 1) {
             window.alert('Amount too small for drop')
             return
         }
@@ -114,40 +121,15 @@ const Drops = (props) => {
         const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
         const public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
         newKeyPair.amount = amount
-        // get the drops from idb
         await addDrop(newKeyPair)
         // register the drop public key and send the amount to contract
         const { contract } = window
-        await contract.send({ public_key }, BOATLOAD_OF_GAS, amount)
-        // going to redirect because we're sending funds
-        // TODO: Handle error?
-    }
-
-    /********************************
-    Funding a limited drop (create multisig only) with your currently logged in account
-    ********************************/
-    async function fundLimitedDrop() {
-        // get a drop amount from the user
-        const amount = toNear(window.prompt('Amount to fund with in Near Ⓝ\nRecommended 40 Ⓝ\nWARNING you will ONLY be able to create a multisig contract with this drop. You will NOT be able to reclaim these funds!') || 0)
-        if (nearTo(amount) < 0.01) {
-            window.alert('Amount too small for drop')
-            return
+        try {
+            await contract.send({ public_key }, BOATLOAD_OF_GAS, amount)
+        } catch(e) {
+            removeDrop(public_key)
+            console.warn(e)
         }
-        // create a new drop keypair, add the amount to the object, store it
-        const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
-        const public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
-        newKeyPair.amount = amount
-        newKeyPair.limited = true
-        // get the drops from idb
-        await addDrop(newKeyPair)
-        // register the drop public key and send the amount to contract
-        const { contract } = window
-        const res = await contract.send_limited({
-            public_key,
-            method_names: 'create_multisig_and_claim'
-        }, BOATLOAD_OF_GAS, amount)
-            .catch((e) => { console.log(e) })
-        // going to redirect because we're sending funds
     }
 
     /********************************
