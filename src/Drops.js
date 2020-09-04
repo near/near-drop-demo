@@ -4,7 +4,7 @@ import * as nearApi from 'near-api-js'
 import { get, set, del } from 'idb-keyval'
 import * as clipboard from "clipboard-polyfill/text";
 import {
-    nearTo, nearToInt, toNear, BOATLOAD_OF_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
+    nearTo, nearToInt, toNear, BOATLOAD_OF_GAS, DROP_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
 } from './util/near-util'
 import './Drops.scss';
 
@@ -22,6 +22,7 @@ const Drops = (props) => {
     const dropStorageKey = '__drops_' + account_id
 
     const [drops, setDrops] = useState([])
+    const [showUsed, setShowUsed] = useState(false)
     const [urlDrop, setUrlDrop] = useState()
 
     useEffect(() => {
@@ -36,7 +37,6 @@ const Drops = (props) => {
         }
         window.clearDrops = () => del(dropStorageKey)
     }, [])
-
     /********************************
     Update drops (idb + state), add drop, remove drop
     ********************************/
@@ -69,8 +69,8 @@ const Drops = (props) => {
     async function removeDrop(public_key) {
         // get the drops from idb and remove the one matching this public_key
         const drops = await get(dropStorageKey) || []
-        const drop = drops.splice(drops.findIndex((d) => d.public_key === public_key), 1)
-        console.log(drop)
+        const drop = drops.find((d) => d.public_key === public_key)
+        drop.used = true
         await set(dropStorageKey, drops)
         updateDrops()
     }
@@ -104,11 +104,6 @@ const Drops = (props) => {
         })
         return contract
     }
-
-    /********************************
-    Funding Drops 
-    ********************************/
-   
     /********************************
     Funding an open drop (claim, create account, create contract) with your currently logged in account
     ********************************/
@@ -128,162 +123,11 @@ const Drops = (props) => {
         // register the drop public key and send the amount to contract
         const { contract } = window
         try {
-            await contract.send({ public_key }, BOATLOAD_OF_GAS, amount)
+            await contract.send({ public_key }, DROP_GAS, amount)
         } catch(e) {
             removeDrop(public_key)
             console.warn(e)
         }
-    }
-
-    /********************************
-    Claiming drops (from a URL Drop) follow the example link
-    ********************************/
-
-    /********************************
-    Create an account that is limited to a multisig contract
-    ********************************/
-    async function claimMultisig(amount, secretKey) {
-        if (!window.confirm(`Create a new multisig account and claim drop of ${nearTo(amount, 2)} Ⓝ\nDo you want to continue?`)) {
-            return
-        }
-        const contract = await getContract([], ['create_multisig_and_claim'], secretKey)
-        // claim funds
-        const new_account_id = window.prompt('New Account Id')
-        if (!new_account_id || new_account_id.length < 2) {
-            alert(`The account id is invalid.`)
-            return
-        }
-        const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
-        const new_public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
-        const num_confirmations = 2
-        contract.create_multisig_and_claim({
-            new_account_id,
-            new_public_key,
-            num_confirmations,
-        }, BOATLOAD_OF_GAS)
-            .then(async (res) => {
-                console.log(res)
-                if (!res) {
-                    alert(`Unable to create account ${new_account_id}. The account id might be taken.`)
-                    return
-                }
-                alert(`Account ${new_account_id} created.`)
-                await window.keyStore.setKey(NETWORK_ID, new_account_id, newKeyPair)
-                updateUser()
-                window.location = '/'
-            })
-            .catch((e) => {
-                console.log(e)
-                alert(`Unable to create account ${new_account_id}`)
-            })
-    }
-
-
-    /********************************
-    Create an account that is limited to a multisig contract
-    ********************************/
-    async function claimContract(amount, secretKey) {
-        if (!window.confirm(`Create a new multisig account and claim drop of ${nearTo(amount, 2)} Ⓝ\nDo you want to continue?`)) {
-            return
-        }
-        const contract = await getContract([], ['create_contract_and_claim'], secretKey)
-        // claim funds
-        const new_account_id = window.prompt('New Account Id')
-        if (!new_account_id || new_account_id.length < 2) {
-            alert(`The account id is invalid.`)
-            return
-        }
-        const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
-        const new_public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
-
-        const multisig_bytes = await fetch('./wasm/multisig.wasm').then((res) => res.arrayBuffer())
-        console.log(ACCESS_KEY_ALLOWANCE)
-        contract.create_contract_and_claim({
-            new_account_id,
-            new_public_key,
-            allowance: ACCESS_KEY_ALLOWANCE,
-            contract_bytes: [...new Uint8Array(multisig_bytes)],
-            method_names: [...new Uint8Array(new TextEncoder().encode(`
-                new,
-                add_request,
-                delete_request,
-                execute_request,
-                confirm,
-                get_request,
-                list_request_ids,
-                get_confirmations`
-            ))]
-        }, BOATLOAD_OF_GAS)
-            .then(async (res) => {
-                if (!res) {
-                    alert(`Unable to create account ${new_account_id}. The account id might be taken.`)
-                    return
-                }
-                alert(`Account ${new_account_id} created.`)
-                await window.keyStore.setKey(NETWORK_ID, new_account_id, newKeyPair)
-                updateUser()
-                window.location = '/'
-            })
-            .catch((e) => {
-                console.log(e)
-                alert(`Unable to create account ${new_account_id}`)
-            })
-    }
-
-    /********************************
-    Create an account first then transfer the tokens into the new account
-    Adds the account to your browser local storage
-    ********************************/
-    async function claimAccount(amount, secretKey) {
-        if (!window.confirm(`Create a new account and claim drop of ${nearTo(amount, 2)} Ⓝ\nDo you want to continue?`)) {
-            return
-        }
-        const contract = await getContract([], ['create_account_and_claim'], secretKey)
-        // claim funds
-        const new_account_id = window.prompt('New Account Id')
-        if (!new_account_id || new_account_id.length < 2) {
-            alert(`The account id is invalid.`)
-            return
-        }
-        const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
-        const new_public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
-
-        contract.create_account_and_claim({ new_account_id, new_public_key}, BOATLOAD_OF_GAS)
-            .then(async (res) => {
-                if (!res) {
-                    alert(`Unable to create account ${new_account_id}. The account id might be taken.`)
-                    return
-                }
-                alert(`Account ${new_account_id} created.`)
-                await window.keyStore.setKey(NETWORK_ID, new_account_id, newKeyPair)
-                updateUser()
-                window.location = '/'
-            })
-            .catch((e) => {
-                alert(`Unable to create account ${new_account_id}`)
-            })
-    }
-    /********************************
-    Claim a drop (transfer the tokens to your current account)
-    ********************************/
-    async function claimDrop(amount, secretKey) {
-        if (!window.confirm(`Claim drop of ${nearTo(amount, 2)} Ⓝ and transfer funds to\n${account_id}\nDo you want to continue?`)) {
-            return
-        }
-        // claim funds
-        const contract = await getContract([], ['claim'], secretKey)
-        contract.claim({ account_id }, BOATLOAD_OF_GAS)
-            .then((res) => {
-                console.log(res)
-                window.alert('Drop claimed')
-                updateUser()
-                window.location = '/'
-            })
-            .catch((e) => {
-                console.log(e)
-                alert('Unable to claim drop. The drop may have already been claimed.')
-                window.location = '/'
-            })
     }
     /********************************
     Reclaim a drop / cancels the drop and claims to the current user
@@ -309,7 +153,10 @@ const Drops = (props) => {
         updateUser()
     }
 
-    console.log('DROPS', drops)
+    const activeDrops = drops.filter((d) => !d.used)
+    const usedDrops = drops.filter((d) => d.used)
+
+    console.log('ACTIVE DROPS', activeDrops)
 
     return (
         <div className="root">
@@ -334,11 +181,11 @@ const Drops = (props) => {
                     }
                 </div>
             }
-            { drops.length > 0 && 
+            { activeDrops.length > 0 && 
                 <div className="drop" >
                     <h2>Active Drops</h2>
                     {
-                        drops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
+                        activeDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
                             <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
                             <p>For public key: {public_key.substring(0, 5)+'...'}</p>
                             <button onClick={async () => {
@@ -351,6 +198,32 @@ const Drops = (props) => {
                         </div>)
                     }
                 </div>
+            }
+            { showUsed ?
+                <>
+                    <button onClick={() => setShowUsed(false)}>Hide Used Drops</button>
+                    {
+                        usedDrops.length > 0 ? 
+                        <div className="drop" >
+                        <h3>Used Drops</h3>
+                        {
+                            usedDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
+                                <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
+                                <p>For public key: {public_key.substring(0, 5)+'...'}</p>
+                                <button onClick={async () => {
+                                    await clipboard.writeText(walletLink)
+                                    alert('Create Near Wallet link copied to clipboard')
+                                }}>Copy Near Wallet Link</button>
+                                <br/>
+
+                                <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>
+                            </div>)
+                        }
+                        </div> : <h3>No Used Drops</h3>
+                    }
+                </>
+                :
+                <button onClick={() => setShowUsed(true)}>Show Used Drops</button>
             }
         </div>
     )

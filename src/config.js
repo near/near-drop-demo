@@ -18,8 +18,7 @@ function getConfig(env) {
             networkId: 'default',
             nodeUrl: 'https://rpc.testnet.near.org',
             contractName: 'testnet',
-            // walletUrl: 'https://wallet.testnet.near.org',
-            walletUrl: 'http://localhost:1234',
+            walletUrl: 'https://wallet.testnet.near.org',
             helperUrl: 'https://helper.testnet.near.org',
         };
     case 'betanet':
