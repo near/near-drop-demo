@@ -182,7 +182,7 @@ const Drops = (props) => {
                 </div>
             }
             { activeDrops.length > 0 && 
-                <div className="drop" >
+                <div className="drop">
                     <h2>Active Drops</h2>
                     {
                         activeDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
@@ -201,10 +201,12 @@ const Drops = (props) => {
             }
             { showUsed ?
                 <>
-                    <button onClick={() => setShowUsed(false)}>Hide Used Drops</button>
+                    <div className="drop">
+                        <button style={{width: '100%', marginTop: 16}} onClick={() => setShowUsed(false)}>Hide Used Drops</button>
+                    </div>
                     {
                         usedDrops.length > 0 ? 
-                        <div className="drop" >
+                        <div className="drop">
                         <h3>Used Drops</h3>
                         {
                             usedDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
