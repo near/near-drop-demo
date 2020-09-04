@@ -7,7 +7,6 @@
 
 ## Linkdrop example with contract account deployment
 
-
 ## About the app
 The app allows you to send funds to the Linkdrop contract which will create "Drops". You will have a list of these in local storage and you can remove them at any time. This claims the funds back to your current account.
 
@@ -21,6 +20,10 @@ You can either:
 1. claim the funds
 2. create an account
 3. create a contract account (deploys a locked multisig account)
+
+## Contract
+For more details on the linkdrop contract:
+https://github.com/near/near-linkdrop
 
 ## Quickstart
 ```

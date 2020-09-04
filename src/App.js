@@ -29,7 +29,6 @@ class App extends Component {
   }
 
   async signedInFlow() {
-    console.log("come in sign in flow")
     this.setState({
       login: true,
     })
