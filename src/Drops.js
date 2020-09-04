@@ -6,6 +6,7 @@ import * as clipboard from "clipboard-polyfill/text";
 import {
     nearTo, nearToInt, toNear, BOATLOAD_OF_GAS, DROP_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
 } from './util/near-util'
+import { howLongAgo } from './util/util'
 import './Drops.scss';
 
 const Drops = (props) => {
@@ -59,18 +60,23 @@ const Drops = (props) => {
                 res = await contract.get_key_balance({ key })
             } catch (e) {
                 console.warn(e)
-            }
-            if (!res || nearToInt(res) < 1) {
-                await removeDrop(key)
+                if (e.message.indexOf('Key is missing') > -1) {
+                    await useDrop(key)
+                }
             }
         }
         setDrops(drops)
     }
-    async function removeDrop(public_key) {
-        // get the drops from idb and remove the one matching this public_key
+    async function useDrop(public_key) {
         const drops = await get(dropStorageKey) || []
         const drop = drops.find((d) => d.public_key === public_key)
         drop.used = true
+        await set(dropStorageKey, drops)
+        updateDrops()
+    }
+    async function removeDrop(public_key) {
+        const drops = await get(dropStorageKey) || []
+        drops.splice(drops.findIndex((d) => d.public_key === public_key), 1)
         await set(dropStorageKey, drops)
         updateDrops()
     }
@@ -119,14 +125,17 @@ const Drops = (props) => {
         const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
         const public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
         newKeyPair.amount = amount
+        newKeyPair.ts = Date.now()
         await addDrop(newKeyPair)
         // register the drop public key and send the amount to contract
         const { contract } = window
         try {
             await contract.send({ public_key }, DROP_GAS, amount)
         } catch(e) {
-            removeDrop(public_key)
             console.warn(e)
+            if (e.message.indexOf('deposit must be greater than') > -1) {
+                removeDrop(public_key)
+            }
         }
     }
     /********************************
@@ -149,12 +158,12 @@ const Drops = (props) => {
                 console.log(e)
                 alert('Unable to claim drop. The drop may have already been claimed.')
             })
-        removeDrop(public_key)
+        useDrop(public_key)
         updateUser()
     }
 
-    const activeDrops = drops.filter((d) => !d.used)
-    const usedDrops = drops.filter((d) => d.used)
+    const activeDrops = drops.filter((d) => !d.used).sort((a, b) => b.ts - a.ts)
+    const usedDrops = drops.filter((d) => d.used).sort((a, b) => b.ts - a.ts)
 
     console.log('ACTIVE DROPS', activeDrops)
 
@@ -185,16 +194,16 @@ const Drops = (props) => {
                 <div className="drop">
                     <h2>Active Drops</h2>
                     {
-                        activeDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
+                        activeDrops.map(({ public_key, amount, ts, walletLink }) => <div className="drop" key={public_key}>
                             <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
                             <p>For public key: {public_key.substring(0, 5)+'...'}</p>
+                                <p>{ howLongAgo(ts) }</p>
                             <button onClick={async () => {
                                 await clipboard.writeText(walletLink)
                                 alert('Create Near Wallet link copied to clipboard')
                             }}>Copy Near Wallet Link</button>
                             <br/>
-
-                            <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>
+                            <button onClick={() => reclaimDrop(public_key)}>Use Drop</button>
                         </div>)
                     }
                 </div>
@@ -209,16 +218,16 @@ const Drops = (props) => {
                         <div className="drop">
                         <h3>Used Drops</h3>
                         {
-                            usedDrops.map(({ public_key, amount, walletLink }) => <div className="drop" key={public_key}>
+                            usedDrops.map(({ public_key, amount, ts, walletLink }) => <div className="drop" key={public_key}>
                                 <p className="funds">{nearTo(amount, 2)} Ⓝ</p>
                                 <p>For public key: {public_key.substring(0, 5)+'...'}</p>
+                                <p>{ howLongAgo(ts) }</p>
                                 <button onClick={async () => {
                                     await clipboard.writeText(walletLink)
                                     alert('Create Near Wallet link copied to clipboard')
                                 }}>Copy Near Wallet Link</button>
                                 <br/>
-
-                                <button onClick={() => reclaimDrop(public_key)}>Remove Drop</button>
+                                <button onClick={() => removeDrop(public_key)}>Remove Drop</button>
                             </div>)
                         }
                         </div> : <h3>No Used Drops</h3>
