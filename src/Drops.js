@@ -1,13 +1,15 @@
 import 'regenerator-runtime/runtime';
 import React, { useState, useEffect } from 'react';
 import * as nearApi from 'near-api-js'
-import { get, set, del } from 'idb-keyval'
 import * as clipboard from "clipboard-polyfill/text";
 import {
     nearTo, nearToInt, toNear, BOATLOAD_OF_GAS, DROP_GAS, NETWORK_ID, ACCESS_KEY_ALLOWANCE
 } from './util/near-util'
 import { howLongAgo } from './util/util'
 import './Drops.scss';
+
+const get = (k) => JSON.parse(localStorage.getItem(k) || '[]')
+const set = (k, v) => localStorage.setItem(k, JSON.stringify(v))
 
 const Drops = (props) => {
 
@@ -20,7 +22,13 @@ const Drops = (props) => {
         currentUser, currentUser: { account_id }, updateUser
     } = props
 
-    const dropStorageKey = '__drops_' + account_id
+    // in case account_id is null or undefined
+    let accountId = account_id
+    if (!accountId || accountId.length === 0) {
+        accountId = window.prompt('Your AccountId?')
+    }
+
+    const dropStorageKey = '__drops_' + accountId
 
     const [drops, setDrops] = useState([])
     const [showUsed, setShowUsed] = useState(false)
@@ -36,7 +44,6 @@ const Drops = (props) => {
         if (key && amount && from) {
             setUrlDrop({ key, amount, from, limited })
         }
-        window.clearDrops = () => del(dropStorageKey)
     }, [])
     /********************************
     Update drops (idb + state), add drop, remove drop
@@ -94,6 +101,19 @@ const Drops = (props) => {
         return `${walletUrl}/create/${contractName}/${secretKey}`
     }
     /********************************
+    Download keypair
+    ********************************/
+    function downloadFile(fileName, data, type='text/plain') {
+        const a = document.createElement('a')
+        a.style.display = 'none'
+        document.body.appendChild(a)
+        a.href = window.URL.createObjectURL(new Blob([data], { type }))
+        a.setAttribute("download", fileName)
+        a.click()
+        window.URL.revokeObjectURL(a.href)
+        document.body.removeChild(a)
+    }
+    /********************************
     Get Contract Helper
     ********************************/
     async function getContract(viewMethods = [], changeMethods = [], secretKey) {
@@ -124,6 +144,14 @@ const Drops = (props) => {
         // create a new drop keypair, add the amount to the object, store it
         const newKeyPair = nearApi.KeyPair.fromRandom('ed25519')
         const public_key = newKeyPair.public_key = newKeyPair.publicKey.toString().replace('ed25519:', '')
+
+        // download keypair if user wants
+        const downloadKey = window.confirm('Download keypair before funding?')
+        if (downloadKey) {
+            const { secretKey, public_key: publicKey } = JSON.parse(JSON.stringify(newKeyPair))
+            downloadFile(public_key + '.txt', JSON.stringify({ publicKey, secretKey }))
+        }
+
         newKeyPair.amount = amount
         newKeyPair.ts = Date.now()
         await addDrop(newKeyPair)
@@ -133,9 +161,6 @@ const Drops = (props) => {
             await contract.send({ public_key }, DROP_GAS, amount)
         } catch(e) {
             console.warn(e)
-            if (e.message.indexOf('deposit must be greater than') > -1) {
-                removeDrop(public_key)
-            }
         }
     }
     /********************************
@@ -145,7 +170,7 @@ const Drops = (props) => {
         // get the drops from idb and find the one matching this public key
         const drops = await get(dropStorageKey) || []
         const drop = drops.find((d) => d.public_key === public_key)
-        if (!window.confirm(`Remove drop of ${nearTo(drop.amount, 2)} Ⓝ and transfer funds to\n${account_id}\nDo you want to continue?`)) {
+        if (!window.confirm(`Remove drop of ${nearTo(drop.amount, 2)} Ⓝ and transfer funds to\n${accountId}\nDo you want to continue?`)) {
             return
         }
         const contract = await getContract([], ['claim'], drop.secretKey)
@@ -166,11 +191,12 @@ const Drops = (props) => {
     const usedDrops = drops.filter((d) => d.used).sort((a, b) => b.ts - a.ts)
 
     console.log('ACTIVE DROPS', activeDrops)
+    console.log('USED DROPS', usedDrops)
 
     return (
         <div className="root">
             <div>
-                <p>{account_id}</p>
+                <p>{accountId}</p>
                 <p>Balance: <span className="funds">{nearTo(currentUser.balance, 2)} Ⓝ</span></p>
             </div>
             <button onClick={() => fundDrop()}>Create New NEAR Drop</button><br/>

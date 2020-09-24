@@ -9,7 +9,7 @@ class App extends Component {
     super(props);
     this.state = {
       login: false,
-      currentUser: null,
+      currentUser: window.currentUser,
     }
     this.signedInFlow = this.signedInFlow.bind(this);
     this.requestSignIn = this.requestSignIn.bind(this);
@@ -76,6 +76,8 @@ class App extends Component {
     const {
       currentUser
     } = state
+
+    console.log(state)
 
     return (
       <div className="App-header">
