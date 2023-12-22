@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "big.js": "^5.2.2",
-    "clipboard-polyfill": "^3.0.1",
+    "clipboard-polyfill": "^3.0.3",
     "near-api-js": "^0.29.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
