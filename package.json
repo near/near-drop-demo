@@ -28,8 +28,8 @@
     "big.js": "^5.2.2",
     "clipboard-polyfill": "^3.0.1",
     "near-api-js": "^0.29.1",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
     "regenerator-runtime": "^0.13.7"
   },
   "eslintConfig": {
